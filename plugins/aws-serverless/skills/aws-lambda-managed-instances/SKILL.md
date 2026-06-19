@@ -4,13 +4,14 @@ description: >
   Evaluate, configure, and migrate workloads to AWS Lambda Managed Instances (LMI).
   Triggers on: Lambda Managed Instances, LMI, capacity provider, multi-concurrency Lambda,
   dedicated instance Lambda, EC2-backed Lambda, cold start elimination, Graviton Lambda,
-  instance type for Lambda, Lambda cost optimization with Reserved Instances or Savings Plans.
-  Also trigger when users describe high-volume predictable workloads seeking cost savings,
+  instance type for Lambda, scheduled scaling for LMI, Lambda cost optimization with
+  Reserved Instances or Savings Plans. Also trigger when users describe high-volume
+  predictable workloads seeking cost savings, want to scale LMI capacity on a schedule,
   or compare Lambda vs EC2 for steady-state traffic. For standard Lambda without LMI,
   use the aws-lambda skill instead.
 argument-hint: "[describe your workload or what you need help with]"
 metadata:
-  tags: lambda, lmi, managed-instances, ec2, capacity-provider, multi-concurrency, cost-optimization
+  tags: lambda, lmi, managed-instances, ec2, capacity-provider, multi-concurrency, cost-optimization, scheduled-scaling
 ---
 
 # AWS Lambda Managed Instances (LMI)
@@ -22,10 +23,10 @@ For standard Lambda development, see [aws-lambda skill](../aws-lambda/). For SAM
 ## When to Load Reference Files
 
 - **Cost comparison**, **pricing analysis**, **Lambda vs LMI cost**, **Savings Plans**, or **Reserved Instances** -> see [references/cost-comparison.md](references/cost-comparison.md)
-- **Instance types**, **memory sizing**, **vCPU ratios**, **scaling tuning**, or **capacity provider config** -> see [references/configuration-guide.md](references/configuration-guide.md)
+- **Instance types**, **memory sizing**, **vCPU ratios**, **scaling tuning**, **scheduled scaling**, or **capacity provider config** -> see [references/configuration-guide.md](references/configuration-guide.md)
 - **Thread safety**, **concurrency model**, **code review checklist**, **Powertools compatibility**, or **multi-concurrency readiness** -> see [references/thread-safety.md](references/thread-safety.md)
 - **Before/after code examples**, **runtime-specific migration** (Node.js, Python, Java, .NET), or **connection pooling** -> see [references/migration-patterns.md](references/migration-patterns.md)
-- **IAM roles**, **VPC setup**, **CLI commands**, **SAM template**, or **CDK example** -> see [references/infrastructure-setup.md](references/infrastructure-setup.md) and [scripts/setup-lmi.sh](scripts/setup-lmi.sh)
+- **IAM roles**, **VPC setup**, **CLI commands**, **SAM template**, **CDK example**, or **scheduled scaling setup (EventBridge Scheduler)** -> see [references/infrastructure-setup.md](references/infrastructure-setup.md) and [scripts/setup-lmi.sh](scripts/setup-lmi.sh)
 - **Errors**, **throttling**, **debugging**, or **stuck deployments** -> see [references/troubleshooting.md](references/troubleshooting.md)
 
 ## Quick Decision: Is LMI Right for This Workload?
@@ -76,6 +77,8 @@ For discount analysis (Savings Plans, Reserved Instances), refer users to the [A
 **Multi-concurrency defaults/vCPU**: Node.js 64, Java 32, .NET 32, Python 16.
 
 **Scaling**: MinExecutionEnvironments (default 3), MaxVCpuCount (default 400), TargetResourceUtilization.
+
+**Scheduled scaling**: For predictable traffic (business hours, marketing events), use EventBridge Scheduler to adjust Min/Max execution environments on a one-time or recurring schedule — scale up before peak, scale down or to zero when idle.
 
 See [references/configuration-guide.md](references/configuration-guide.md) for decision trees and detailed tuning.
 
@@ -135,8 +138,10 @@ See [references/infrastructure-setup.md](references/infrastructure-setup.md) for
 ### Operations
 
 - Do: Set CloudWatch alarms on throttle rate > 1% and CPU > 80%
+- Do: Use scheduled scaling (EventBridge Scheduler) for predictable traffic — raise Min/Max before peak periods and lower them (or scale to zero) when idle
 - Don't: Manually terminate LMI EC2 instances (delete the capacity provider instead)
 - Don't: Forget to publish a version — unpublished functions cannot run on LMI
+- Don't: Rely on a deactivated (Min=Max=0) function to self-recover — schedule an explicit scale-up to reactivate it
 
 ## Limits Quick Reference
 
@@ -172,7 +177,7 @@ REQUIRED: AWS credentials configured on the host machine.
 
 ### Regional Availability
 
-Currently available: us-east-1, us-east-2, us-west-2, ap-northeast-1, eu-west-1. Expanding to all commercial regions soon.
+Available in all commercial AWS Regions except Israel (Tel Aviv), Middle East (Bahrain), Middle East (UAE), and Asia Pacific (Auckland).
 
 Check the [Lambda Managed Instances documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-managed-instances.html) for the latest regional availability.
 
@@ -204,12 +209,14 @@ Override: "use SAM" → SAM YAML, "use CloudFormation" → CloudFormation YAML. 
 
 ### Unsupported Region
 
-- State: "Lambda Managed Instances is not yet available in [region]"
-- List available regions
+- State: "Lambda Managed Instances is not available in [region]"
+- Name the excluded regions: Israel (Tel Aviv), Middle East (Bahrain), Middle East (UAE), Asia Pacific (Auckland)
+- Suggest the nearest supported region
 
 ## Resources
 
 - [Lambda Managed Instances Docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-managed-instances.html)
+- [Scaling LMI & Scheduled Scaling Docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-managed-instances-scaling.html)
 - [Introducing LMI (AWS Blog)](https://aws.amazon.com/blogs/aws/introducing-aws-lambda-managed-instances-serverless-simplicity-with-ec2-flexibility/)
 - [Build High-Performance Apps with LMI](https://aws.amazon.com/blogs/compute/build-high-performance-apps-with-aws-lambda-managed-instances/)
 - [Migrating Functions to LMI (AWS Blog)](https://aws.amazon.com/blogs/compute/migrating-your-functions-to-aws-lambda-managed-instances/)
