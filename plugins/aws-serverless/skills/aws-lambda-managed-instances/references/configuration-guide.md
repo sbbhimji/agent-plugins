@@ -5,17 +5,17 @@
 - **CPU-intensive** (encoding, ML, compression) → C-series, 2:1 ratio, concurrency=1/vCPU
 - **Memory-intensive** (caching, large datasets) → R-series, 8:1 ratio
 - **Network-intensive** (streaming, data transfer) → Use AllowedInstanceTypes for n-suffix types, 4:1 ratio
-- **General/balanced** (web APIs, microservices) → M-series, 4:1 ratio, default concurrency
+- **General/balanced** (web APIs, microservices) → M-series, 2:1 ratio (default), default concurrency
 
 Architecture: ARM (Graviton, g-suffix) for price-performance. x86 (i=Intel, a=AMD) when dependencies require it.
 
 ## Memory-to-vCPU Ratios
 
-| Ratio | Profile | When to use                | Memory examples       |
-| ----- | ------- | -------------------------- | --------------------- |
-| 2:1   | Compute | CPU-bound work             | 2GB/1vCPU, 4GB/2vCPU  |
-| 4:1   | General | Most workloads (default)   | 4GB/1vCPU, 8GB/2vCPU  |
-| 8:1   | Memory  | Caching, data, Python apps | 8GB/1vCPU, 16GB/2vCPU |
+| Ratio | Profile | When to use                      | Memory examples       |
+| ----- | ------- | -------------------------------- | --------------------- |
+| 2:1   | Compute | CPU-bound work (default)         | 2GB/1vCPU, 4GB/2vCPU  |
+| 4:1   | General | Mixed CPU/memory-heavy workloads | 4GB/1vCPU, 8GB/2vCPU  |
+| 8:1   | Memory  | Memory-heavy or Python apps      | 8GB/1vCPU, 16GB/2vCPU |
 
 Min: 2 GB / 1 vCPU. Max: 32 GB. Memory must align with ratio multiples.
 
