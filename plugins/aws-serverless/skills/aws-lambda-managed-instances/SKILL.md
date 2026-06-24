@@ -27,7 +27,7 @@ For standard Lambda development, see [aws-lambda skill](../aws-lambda/). For SAM
 - **Thread safety**, **concurrency model**, **code review checklist**, **Powertools compatibility**, or **multi-concurrency readiness** -> see [references/thread-safety.md](references/thread-safety.md)
 - **Before/after code examples**, **runtime-specific migration** (Node.js, Python, Java, .NET), or **connection pooling** -> see [references/migration-patterns.md](references/migration-patterns.md)
 - **IAM roles**, **VPC setup**, **CLI commands**, **SAM template**, **CDK example**, or **scheduled scaling setup (EventBridge Scheduler)** -> see [references/infrastructure-setup.md](references/infrastructure-setup.md) and [scripts/setup-lmi.sh](scripts/setup-lmi.sh)
-- **Errors**, **throttling**, **debugging**, or **stuck deployments** -> see [references/troubleshooting.md](references/troubleshooting.md)
+- **Errors**, **throttling**, **debugging**, **stuck deployments**, **tuning configuration**, or **adjusting after deployment** -> see [references/troubleshooting.md](references/troubleshooting.md)
 
 ## Quick Decision: Is LMI Right for This Workload?
 
@@ -55,6 +55,38 @@ Gather these signals before recommending:
 6. **Concurrency readiness**: Thread safety (Node.js/Java/.NET)? Shared `/tmp` paths? Per-invocation DB connections?
 7. **VPC**: Already in a VPC? Private resource access needed?
 
+#### Deriving LMI Configuration from Metrics
+
+If Lambda Insights is enabled on the function, use these metrics to calculate your starting configuration. If Lambda Insights is not enabled, suggest adding it to gather accurate workload data — but only proceed with the user's explicit confirmation, as adding the Insights layer may affect function performance or cold start times.
+
+To check if Lambda Insights is enabled, look for a LambdaInsightsExtension layer on the function. To add it, find the latest layer ARN for your region from the [Lambda Insights documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Lambda-Insights-extension-versionsx.html) and attach the `CloudWatchLambdaInsightsExecutionRolePolicy` managed policy to the function's execution role.
+
+**Target max concurrency** (from `cpu_total_time` and `Duration`):
+
+```
+PerExecutionEnvironmentMaxConcurrency = floor((0.5 × Duration) / cpu_total_time)
+```
+
+This targets 50% CPU utilization at full concurrency, leaving headroom for scaling.
+
+**Memory allocation** (from `memory_utilization` and current memory):
+
+```
+MemorySize = max(2048, MaxConcurrency × (memory_utilization / 100) × current_allocated_memory)
+```
+
+This overestimates (assumes no shared base memory) but provides a safe starting point.
+
+**Minimum execution environments** (from baseline `ConcurrentExecutions`):
+
+```
+MinExecutionEnvironments = max(3, ceil(baseline_concurrent_executions × 2 / MaxConcurrency))
+```
+
+Targets 50% concurrency utilization to leave headroom for traffic bursts.
+
+**Without Lambda Insights:** Start with the runtime's default max concurrency, 2 GB memory, and MinExecutionEnvironments = 3. Adjust during testing.
+
 ### Step 2: Build the Cost Comparison
 
 REQUIRED: Present a cost comparison before recommending LMI. Compare at minimum:
@@ -72,7 +104,7 @@ For discount analysis (Savings Plans, Reserved Instances), refer users to the [A
 
 **Instance families** (~450 types): C-series (compute, .xlarge+), M-series (general, .large+), R-series (memory, .large+). ARM (Graviton) for best price-performance.
 
-**Memory-to-vCPU ratios**: 2:1 (compute), 4:1 (general, default), 8:1 (memory). Min 2 GB, max 32 GB.
+**Memory-to-vCPU ratios**: 2:1 (default, CPU-bound work), 4:1 (general/mixed workloads), 8:1 (memory-heavy or Python apps). Min 2 GB, max 32 GB.
 
 **Multi-concurrency defaults/vCPU**: Node.js 64, Java 32, .NET 32, Python 16.
 
@@ -108,8 +140,8 @@ See [references/infrastructure-setup.md](references/infrastructure-setup.md) for
 ### Step 6: Validate and Cut Over
 
 1. Deploy to a non-production environment first
-2. Monitor CloudWatch: CPU utilization, memory, concurrency, throttle rate
-3. Gradual traffic shift with weighted aliases (10% → 50% → 100%)
+2. Monitor CloudWatch: CPU utilization, memory, concurrency, throttle rate. If you observe low CPU utilization or ongoing throttles, see [references/troubleshooting.md](references/troubleshooting.md) for metric-specific adjustment guidance.
+3. Shift traffic to the LMI function (note: weighted alias shifting between LMI and non-LMI functions is not currently supported)
 4. Compare costs after 1-2 weeks of production data
 5. Decommission standard Lambda once stable
 
@@ -117,7 +149,7 @@ See [references/infrastructure-setup.md](references/infrastructure-setup.md) for
 
 ### Configuration
 
-- Do: Start with 4:1 ratio and runtime default concurrency
+- Do: Start with 2:1 ratio and runtime default concurrency
 - Do: Use ARM (Graviton) unless x86 dependencies exist
 - Do: Let Lambda choose instance types unless specific hardware needed
 - Do: Set MaxVCpuCount to control cost ceiling
@@ -128,7 +160,7 @@ See [references/infrastructure-setup.md](references/infrastructure-setup.md) for
 
 - Do: Start with I/O-heavy functions (benefit most from multi-concurrency; CPU-bound functions compete for same CPU)
 - Do: Review code for concurrency safety before attaching to capacity provider (thread safety for Node.js/Java/.NET; `/tmp` and memory for Python)
-- Do: Use weighted aliases for gradual traffic shift
+- Do: Plan traffic shifting strategy based on your invocation source (weighted alias shifting between LMI and non-LMI functions is not currently supported)
 - Do: Include request IDs in all log statements
 - Do: Initialize DB pools and SDK clients outside the handler
 - Do: Estimate total `/tmp` usage under max concurrency
