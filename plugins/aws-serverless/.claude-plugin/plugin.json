@@ -15,7 +15,9 @@
     "sam",
     "api-gateway",
     "eventbridge",
-    "step-functions"
+    "step-functions",
+    "microvms",
+    "firecracker"
   ],
   "license": "Apache-2.0",
   "name": "aws-serverless",

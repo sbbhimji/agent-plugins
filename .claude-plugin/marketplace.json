@@ -65,7 +65,9 @@
         "sam",
         "api gateway",
         "eventbridge",
-        "step functions"
+        "step functions",
+        "microvms",
+        "firecracker"
       ],
       "name": "aws-serverless",
       "source": "./plugins/aws-serverless",
@@ -80,7 +82,9 @@
         "sam",
         "api gateway",
         "eventbridge",
-        "step functions"
+        "step functions",
+        "microvms",
+        "firecracker"
       ],
       "version": "1.2.0"
     },
@@ -160,7 +164,7 @@
       "name": "databases-on-aws",
       "source": "./plugins/databases-on-aws",
       "tags": ["aws", "database", "aurora", "dsql", "serverless", "postgresql"],
-      "version": "1.3.3"
+      "version": "1.4.0"
     },
     {
       "category": "deployment",

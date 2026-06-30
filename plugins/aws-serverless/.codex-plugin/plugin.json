@@ -22,7 +22,9 @@
     "sam",
     "api-gateway",
     "eventbridge",
-    "step-functions"
+    "step-functions",
+    "microvms",
+    "firecracker"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
