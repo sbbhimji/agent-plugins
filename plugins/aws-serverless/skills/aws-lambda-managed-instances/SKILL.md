@@ -72,10 +72,10 @@ This targets 50% CPU utilization at full concurrency, leaving headroom for scali
 **Memory allocation** (from `memory_utilization` and current memory):
 
 ```
-MemorySize = max(2048, MaxConcurrency × (memory_utilization / 100) × current_allocated_memory)
+MemorySize = min(32768, max(2048, MaxConcurrency × (memory_utilization / 100) × current_allocated_memory))
 ```
 
-This overestimates (assumes no shared base memory) but provides a safe starting point.
+This overestimates (assumes no shared base memory) but provides a safe starting point. The outer `min` caps the result at the 32 GB (32768 MB) LMI maximum.
 
 **Minimum execution environments** (from baseline `ConcurrentExecutions`):
 
