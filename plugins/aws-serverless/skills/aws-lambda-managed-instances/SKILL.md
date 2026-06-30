@@ -59,7 +59,7 @@ Gather these signals before recommending:
 
 If Lambda Insights is enabled on the function, use these metrics to calculate your starting configuration. If Lambda Insights is not enabled, suggest adding it to gather accurate workload data — but only proceed with the user's explicit confirmation, as adding the Insights layer may affect function performance or cold start times.
 
-To check if Lambda Insights is enabled, look for a LambdaInsightsExtension layer on the function. To add it, find the latest layer ARN for your region from the [Lambda Insights documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Lambda-Insights-extension-versionsx.html) and attach the `CloudWatchLambdaInsightsExecutionRolePolicy` managed policy to the function's execution role.
+To check if Lambda Insights is enabled, look for a LambdaInsightsExtension layer on the function. To add it, find the latest layer ARN for your region from the [Lambda Insights documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Lambda-Insights-extension-versions.html) and attach the `CloudWatchLambdaInsightsExecutionRolePolicy` managed policy to the function's execution role.
 
 **Target max concurrency** (from `cpu_total_time` and `Duration`):
 
